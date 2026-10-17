@@ -3,7 +3,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "path";
 import { z } from "zod";
 import type { CLICommand } from "modality-cli-kit";
-import { buildThemeCss } from "../../lib/theme-lib/generate";
+import { buildThemeCss } from "../../lib/generate";
 import { ROOT_DIR, THEMES_DIR } from "../../config/const";
 
 const BuildArgsSchema = z.object({});

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { loadThemeConfig, generateThemeBlock, generateColorModeOverrides, toPx } from "../generate";
 import { themeSchema } from "../schema";
 import { parse as parseYaml } from "yaml";
-import { THEMES_DIR } from "../../../config/const";
+import { THEMES_DIR } from "../../config/const";
 
 // ─── Discover all YAML theme files ───
 
