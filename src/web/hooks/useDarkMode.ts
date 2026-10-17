@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'hono/jsx'
+import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'theme-mode'
 

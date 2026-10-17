@@ -1,4 +1,4 @@
-import { useState } from 'hono/jsx'
+import { useState } from 'react'
 
 export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)

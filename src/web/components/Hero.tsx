@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'hono/jsx'
+import { useState, useEffect } from 'react'
 
 function getThemeName(): string {
   const link = document.getElementById('theme-css') as HTMLLinkElement | null

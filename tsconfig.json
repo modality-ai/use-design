@@ -3,7 +3,14 @@
     "module": "preserve",
     "target": "ESNext",
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx/dom",
+    "jsxImportSource": "react",
+    "paths": {
+      "react": ["./node_modules/hono/dist/types/jsx/dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/hono/dist/types/jsx/dom/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/hono/dist/types/jsx/dom/jsx-dev-runtime.d.ts"],
+      "react-dom": ["./node_modules/hono/dist/types/jsx/dom/index.d.ts"],
+      "react-dom/client": ["./node_modules/hono/dist/types/jsx/dom/client.d.ts"]
+    },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "moduleResolution": "bundler",
     "strict": true,

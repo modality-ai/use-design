@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'hono/jsx'
+import { useState, useEffect } from 'react'
 
 interface ColorToken {
   variable: string

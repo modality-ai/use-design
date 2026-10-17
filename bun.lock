@@ -16,8 +16,8 @@
       "devDependencies": {
         "@modality-counter/core": "*",
         "modality-bun-kit": "*",
-        "react": "*",
-        "react-dom": "*",
+        "react": "npm:@hono/react-compat@^19.3.1",
+        "react-dom": "npm:@hono/react-compat@^19.3.1",
       },
     },
   },

@@ -1,4 +1,4 @@
-import { render } from 'hono/jsx/dom'
+import { createRoot } from 'react-dom/client'
 import { Nav } from './components/Nav'
 import { Hero } from './components/Hero'
 import { Colors } from './components/Colors'
@@ -31,5 +31,5 @@ function App() {
 
 const root = document.getElementById('root')
 if (root) {
-  render(<App />, root)
+  createRoot(root).render(<App />)
 }

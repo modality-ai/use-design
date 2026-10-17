@@ -16,6 +16,24 @@ if (themeFiles.length === 0) {
   process.exit(1);
 }
 
+// Alias React imports to hono/jsx/dom for the browser bundle only
+const reactAliases: Record<string, string> = {
+  react: "hono/jsx/dom",
+  "react/jsx-runtime": "hono/jsx/dom/jsx-runtime",
+  "react/jsx-dev-runtime": "hono/jsx/dom/jsx-dev-runtime",
+  "react-dom": "hono/jsx/dom",
+  "react-dom/client": "hono/jsx/dom/client",
+};
+const reactToHono: Bun.BunPlugin = {
+  name: "react-to-hono-jsx",
+  setup(build) {
+    build.onResolve({ filter: /^react(-dom)?(\/.*)?$/ }, (args) => {
+      const target = reactAliases[args.path];
+      return target ? { path: Bun.resolveSync(target, rootDir) } : undefined;
+    });
+  },
+};
+
 // Build client bundle
 const result = await Bun.build({
   entrypoints: [join(srcDir, "web/index.tsx")],
@@ -23,6 +41,7 @@ const result = await Bun.build({
   naming: "client.js",
   minify: true,
   target: "browser",
+  plugins: [reactToHono],
   define: {
     "process.env.NODE_ENV": '"production"',
   },
