@@ -3,6 +3,7 @@
 // single source of truth.
 import type { CLICommand } from "modality-cli-kit";
 import { barCommand } from "./commands/bar";
+import { buildCommand } from "./commands/build";
 import { fooCommand } from "./commands/foo";
 
-export const commands: CLICommand[] = [barCommand, fooCommand];
+export const commands: CLICommand[] = [barCommand, buildCommand, fooCommand];

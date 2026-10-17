@@ -47,9 +47,9 @@
     "build:cli": "bun build ./src/runner/cli.ts ./src/index.ts --target=bun --outdir=./dist --root=./src --external @modality-counter/core",
     "build": "bun run build:commands && bun run clean && bun run build:types && bun run build:cli && chmod +x ./dist/runner/cli.js",
     "test": "bun run build:commands && npm run build && bun test",
-    "build:web": "bun run src/build.ts",
+    "build:web": "bun run src/runner/cli.ts build",
     "start": "bun --hot src/runner/server.ts",
-    "dev": "bun run src/build.ts && bun --hot src/runner/server.ts"
+    "dev": "bun run src/runner/cli.ts build && bun --hot src/runner/server.ts"
   },
   "files": [
     "dist",
