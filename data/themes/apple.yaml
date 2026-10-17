@@ -1,53 +1,230 @@
-version: alpha
-name: Apple
-description: >
-  Inspired by apple.com — cinematic, reductive, product-as-hero.
-  Ref: DESIGN.md (getdesign.md/apple)
-
-colors:
+$description: "Inspired by apple.com — cinematic, reductive, product-as-hero. Ref: DESIGN.md (getdesign.md/apple)"
+$extensions:
+  use-design.theme:
+    name: Apple
+    version: alpha
+color:
+  $type: color
   bg:
-    primary: "#000000"
-    secondary: "#f5f5f7"
+    primary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        hex: "#000000"
+    secondary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.961
+          - 0.961
+          - 0.969
+        hex: "#f5f5f7"
     surface:
-      light: "#ffffff"
-      dark: "#272729"
-    surface-alt: "#ffffff"
+      $value:
+        colorSpace: srgb
+        components:
+          - 1
+          - 1
+          - 1
+        hex: "#ffffff"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.153
+              - 0.153
+              - 0.161
+            hex: "#272729"
+    surface-alt:
+      $value:
+        colorSpace: srgb
+        components:
+          - 1
+          - 1
+          - 1
+        hex: "#ffffff"
   text:
-    primary: "#1d1d1f"
-    secondary: "rgba(0, 0, 0, 0.8)"
-    tertiary: "rgba(0, 0, 0, 0.48)"
-    on-dark: "#ffffff"
-  accent: "#0071e3"
-  link: "#0066cc"
-  link-dark: "#2997ff"
-  btn-active: "#ededf2"
-  shadow: "rgba(0, 0, 0, 0.22)"
+    primary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.114
+          - 0.114
+          - 0.122
+        hex: "#1d1d1f"
+    secondary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        alpha: 0.8
+        hex: "#000000"
+    tertiary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        alpha: 0.48
+        hex: "#000000"
+    on-dark:
+      $value:
+        colorSpace: srgb
+        components:
+          - 1
+          - 1
+          - 1
+        hex: "#ffffff"
+  accent:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0
+        - 0.443
+        - 0.89
+      hex: "#0071e3"
+  link:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0
+        - 0.4
+        - 0.8
+      hex: "#0066cc"
+  link-dark:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.161
+        - 0.592
+        - 1
+      hex: "#2997ff"
+  btn-active:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.929
+        - 0.929
+        - 0.949
+      hex: "#ededf2"
+  shadow:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0
+        - 0
+        - 0
+      alpha: 0.22
+      hex: "#000000"
   nav-bg:
-    light: "rgba(255, 255, 255, 0.8)"
-    dark: "rgba(0, 0, 0, 0.8)"
-  border: "rgba(0, 0, 0, 0.06)"
+    $value:
+      colorSpace: srgb
+      components:
+        - 1
+        - 1
+        - 1
+      alpha: 0.8
+      hex: "#ffffff"
+    $extensions:
+      use-design.mode:
+        dark:
+          colorSpace: srgb
+          components:
+            - 0
+            - 0
+            - 0
+          alpha: 0.8
+          hex: "#000000"
+  border:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0
+        - 0
+        - 0
+      alpha: 0.06
+      hex: "#000000"
   input:
-    bg: "#fafafc"
-    border: "rgba(0, 0, 0, 0.04)"
-
-typography:
+    bg:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.98
+          - 0.98
+          - 0.988
+        hex: "#fafafc"
+    border:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        alpha: 0.04
+        hex: "#000000"
+font:
+  $type: typography
   display:
-    fontFamily: '"SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    $value:
+      fontFamily: '"SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif'
   body:
-    fontFamily: '"SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif'
-
-rounded:
-  sm: "5px"
-  md: "8px"
-  lg: "12px"
-  pill: "980px"
-
-# Tailwind-compatible spacing scale: 1 unit = 4px
+    $value:
+      fontFamily: '"SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif'
+radius:
+  sm:
+    $type: dimension
+    $value:
+      value: 5
+      unit: px
+  md:
+    $type: dimension
+    $value:
+      value: 8
+      unit: px
+  lg:
+    $type: dimension
+    $value:
+      value: 12
+      unit: px
+  pill:
+    $type: dimension
+    $value:
+      value: 980
+      unit: px
 spacing:
-  xs: 1     # 4px
-  sm: 2     # 8px
-  md: 4     # 16px
-  lg: 8     # 32px
-  xl: 16    # 64px
-  gutter: 6 # 24px
-  section: 20 # 80px
+  $type: dimension
+  xs:
+    $value:
+      value: 4
+      unit: px
+  sm:
+    $value:
+      value: 8
+      unit: px
+  md:
+    $value:
+      value: 16
+      unit: px
+  lg:
+    $value:
+      value: 32
+      unit: px
+  xl:
+    $value:
+      value: 64
+      unit: px
+  gutter:
+    $value:
+      value: 24
+      unit: px
+  section:
+    $value:
+      value: 80
+      unit: px

@@ -85,7 +85,15 @@ async function build() {
 
     // Compile with TailwindCSS
     const outPath = join(rootDir, `public/styles/themes/${themeName}.css`);
-    await $`bunx @tailwindcss/cli -i ${intermediatePath} -o ${outPath} --minify`.quiet();
+    try {
+      await $`bunx @tailwindcss/cli -i ${intermediatePath} -o ${outPath} --minify`.quiet();
+    } catch (err) {
+      const stderr = (err as { stderr?: Buffer }).stderr?.toString().trim();
+      return {
+        success: false,
+        message: `Tailwind compile failed for "${themeName}":\n${stderr || (err as Error).message}`,
+      };
+    }
     lines.push(`✓ Theme "${themeName}" — YAML validated, CSS generated`);
   }
 

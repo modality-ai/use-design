@@ -1,734 +1,366 @@
 import { describe, test, expect } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { loadThemeConfig, generateThemeBlock, generateColorModeOverrides, toPx } from "../generate";
-import { themeSchema } from "../schema";
-import { parse as parseYaml } from "yaml";
+import { stringify } from "yaml";
+import { loadThemeConfig, generateThemeBlock, generateColorModeOverrides, buildThemeCss } from "../generate";
 import { THEMES_DIR } from "../../config/const";
 
-// ─── Discover all YAML theme files ───
+// ─── Helpers ───
 
-async function getThemeFiles(): Promise<{ name: string; path: string }[]> {
+const c = (hex: string, alpha?: number) => {
+  const comps = [1, 3, 5].map((i) => Math.round((parseInt(hex.slice(i, i + 2), 16) / 255) * 1000) / 1000);
+  return { colorSpace: "srgb", components: comps, ...(alpha === undefined ? {} : { alpha }), hex };
+};
+const px = (value: number) => ({ value, unit: "px" });
+
+/** A minimal valid DTCG theme; override any top-level key. */
+function theme(over: Record<string, unknown> = {}): string {
+  return stringify({
+    $description: "Test theme",
+    $extensions: { "use-design.theme": { name: "Test", version: "alpha" } },
+    color: { $type: "color", accent: { $value: c("#0071e3") } },
+    font: { $type: "typography", body: { $value: { fontFamily: "Arial, sans-serif" } } },
+    radius: { $type: "dimension", sm: { $value: px(4) } },
+    ...over,
+  });
+}
+
+async function themeFiles(): Promise<{ name: string; path: string }[]> {
   const files = await readdir(THEMES_DIR);
   return files
     .filter((f) => f.endsWith(".yaml"))
     .map((f) => ({ name: f.replace(".yaml", ""), path: resolve(THEMES_DIR, f) }));
 }
 
-// ─── All themes: Zod validation ───
+// ─── Shipped themes ───
 
-describe("Theme YAML Zod validation", () => {
-  test("at least one theme YAML exists", async () => {
-    const themes = await getThemeFiles();
-    expect(themes.length).toBeGreaterThan(0);
+describe("Shipped themes", () => {
+  test("at least one theme exists", async () => {
+    expect((await themeFiles()).length).toBeGreaterThan(0);
   });
 
-  test.each(["apple", "google"])("%s.yaml passes Zod schema", async (name) => {
-    const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-    const config = loadThemeConfig(yaml, `${name}.yaml`);
-    expect(config.name).toBeTruthy();
-  });
-
-  test("all YAML themes pass Zod schema", async () => {
-    const themes = await getThemeFiles();
-    for (const theme of themes) {
-      const yaml = await Bun.file(theme.path).text();
-      expect(() => loadThemeConfig(yaml, theme.path)).not.toThrow();
+  test("every theme passes the DTCG schema and has mode pairs", async () => {
+    for (const t of await themeFiles()) {
+      const config = loadThemeConfig(await Bun.file(t.path).text(), t.path);
+      expect(config.name).toBeTruthy();
+      expect(generateColorModeOverrides(config)).toContain("@media (prefers-color-scheme: light)");
     }
   });
-});
 
-// ─── Required fields ───
-
-describe("Theme required fields", () => {
-  test.each(["apple", "google"])("%s.yaml has name, colors, typography, rounded", async (name) => {
-    const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-    const config = loadThemeConfig(yaml, `${name}.yaml`);
-
-    expect(config.name).toBeString();
-    expect(config.name.length).toBeGreaterThan(0);
-    expect(Object.keys(config.colors).length).toBeGreaterThan(0);
-    expect(Object.keys(config.typography).length).toBeGreaterThan(0);
-    expect(Object.keys(config.rounded).length).toBeGreaterThan(0);
-  });
-});
-
-// ─── Color validation ───
-
-describe("Theme color values", () => {
-  test.each(["apple", "google"])("%s.yaml — all colors are valid CSS", async (name) => {
-    const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-    const raw = parseYaml(yaml);
-    const result = themeSchema.safeParse(raw);
-
-    expect(result.success).toBe(true);
-  });
-
-  test("rejects invalid hex color", () => {
-    const yaml = `
-name: Bad
-colors:
-  accent: "not-a-color"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml, "bad.yaml")).toThrow("Theme validation failed");
-  });
-
-  test("rejects empty color value", () => {
-    const yaml = `
-name: Bad
-colors:
-  accent: ""
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml, "bad.yaml")).toThrow();
-  });
-
-  test("accepts rgba color", () => {
-    const yaml = `
-name: Test
-colors:
-  shadow: "rgba(0, 0, 0, 0.5)"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.colors["shadow"]).toBe("rgba(0, 0, 0, 0.5)");
-  });
-
-  test("accepts nested color objects", () => {
-    const yaml = `
-name: Test
-colors:
-  bg:
-    primary: "#000000"
-    secondary: "#ffffff"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    const bg = config.colors["bg"] as Record<string, string>;
-    expect(bg["primary"]).toBe("#000000");
-    expect(bg["secondary"]).toBe("#ffffff");
-  });
-});
-
-// ─── Typography validation ───
-
-describe("Theme typography values", () => {
-  test("accepts fontFamily-only token", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: '"Roboto", Arial, sans-serif'
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.typography["body"]?.fontFamily).toContain("Roboto");
-  });
-
-  test("accepts full typography token", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  h1:
-    fontFamily: "Inter, sans-serif"
-    fontSize: 48px
-    fontWeight: 600
-    lineHeight: 1.1
-    letterSpacing: 0.02em
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.typography["h1"]?.fontSize).toBe("48px");
-    expect(config.typography["h1"]?.fontWeight).toBe(600);
-    expect(config.typography["h1"]?.lineHeight).toBe(1.1);
-  });
-
-  test("accepts unitless lineHeight", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-    lineHeight: 1.6
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.typography["body"]?.lineHeight).toBe(1.6);
-  });
-});
-
-// ─── Rounded validation ───
-
-describe("Theme rounded values", () => {
-  test("rejects invalid length", () => {
-    const yaml = `
-name: Bad
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "big"
-`;
-    expect(() => loadThemeConfig(yaml, "bad.yaml")).toThrow("Theme validation failed");
-  });
-
-  test("accepts px and rem values", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "8px"
-  lg: "1.5rem"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.rounded["sm"]).toBe("8px");
-    expect(config.rounded["lg"]).toBe("1.5rem");
-  });
-});
-
-// ─── Spacing validation ───
-
-describe("Theme spacing values", () => {
-  test("accepts spacing map", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-spacing:
-  xs: 4px
-  md: 16px
-  lg: 32px
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.spacing?.["md"]).toBe("16px");
-  });
-
-  test("spacing is optional", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.spacing).toBeUndefined();
-  });
-});
-
-// ─── Components validation ───
-
-describe("Theme components values", () => {
-  test("accepts components map", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-components:
-  button-primary:
-    padding: "12px 28px"
-    fontSize: "16px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.components?.["button-primary"]?.["padding"]).toBe("12px 28px");
-  });
-
-  test("components is optional", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.components).toBeUndefined();
-  });
-});
-
-// ─── Missing fields ───
-
-describe("Theme missing fields", () => {
-  test("rejects missing name", () => {
-    const yaml = `
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml)).toThrow();
-  });
-
-  test("rejects missing colors", () => {
-    const yaml = `
-name: Test
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml)).toThrow();
-  });
-
-  test("rejects missing typography", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml)).toThrow();
-  });
-
-  test("rejects missing rounded", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-`;
-    expect(() => loadThemeConfig(yaml)).toThrow();
-  });
-});
-
-// ─── CSS generation ───
-
-describe("generateThemeBlock", () => {
-  test("generates correct @theme block from config", () => {
-    const yaml = `
-name: Test
-colors:
-  bg:
-    primary: "#000"
-  accent: "#0071e3"
-typography:
-  display:
-    fontFamily: '"SF Pro", sans-serif'
-  hero-title:
-    fontSize: 42px
-    fontWeight: 500
-    lineHeight: 1.2
-rounded:
-  md: "8px"
-spacing:
-  md: 16px
-components:
-  button-primary:
-    padding: "12px 28px"
-    fontSize: "16px"
-`;
-    const config = loadThemeConfig(yaml);
+  test.each(["apple", "google", "ferrari"])("%s spacing is on the Tailwind scale", async (name) => {
+    const config = loadThemeConfig(await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text());
     const block = generateThemeBlock(config);
-
-    expect(block).toContain("@theme {");
-    expect(block).toContain("--color-bg-primary: #000;");
-    expect(block).toContain("--color-accent: #0071e3;");
-    expect(block).toContain('--font-display: "SF Pro", sans-serif;');
-    expect(block).toContain("--font-hero-title-size: 42px;");
-    expect(block).toContain("--font-hero-title-weight: 500;");
-    expect(block).toContain("--font-hero-title-line-height: 1.2;");
-    expect(block).toContain("--radius-md: 8px;");
-    expect(block).toContain("--spacing-md: 16px;");
-    expect(block).toContain("--component-button-primary-padding: 12px 28px;");
-    expect(block).toContain("--component-button-primary-font-size: 16px;");
-    expect(block).toContain("}");
-  });
-});
-
-// ─── toPx unit conversion (1 unit = 4px, Tailwind convention) ───
-
-describe("toPx — Tailwind unit conversion", () => {
-  test("integer units convert to px (1 unit = 4px)", () => {
-    expect(toPx(1)).toBe("4px");
-    expect(toPx(2)).toBe("8px");
-    expect(toPx(4)).toBe("16px");
-    expect(toPx(8)).toBe("32px");
-    expect(toPx(16)).toBe("64px");
-  });
-
-  test("fractional units convert correctly", () => {
-    expect(toPx(0.5)).toBe("2px");
-    expect(toPx(1.5)).toBe("6px");
-    expect(toPx(2.5)).toBe("10px");
-  });
-
-  test("zero converts to 0px", () => {
-    expect(toPx(0)).toBe("0px");
-  });
-
-  test("string with unit passes through unchanged", () => {
-    expect(toPx("16px")).toBe("16px");
-    expect(toPx("1rem")).toBe("1rem");
-    expect(toPx("50%")).toBe("50%");
-    expect(toPx("0.5em")).toBe("0.5em");
-  });
-});
-
-// ─── Numeric scale in spacing and rounded ───
-
-describe("Numeric scale: spacing", () => {
-  test("numeric spacing values convert via toPx in generated CSS", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-spacing:
-  xs: 1
-  sm: 2
-  md: 4
-  lg: 8
-  xl: 16
-`;
-    const config = loadThemeConfig(yaml);
-    const block = generateThemeBlock(config);
-
-    expect(block).toContain("--spacing-xs: 4px;");
-    expect(block).toContain("--spacing-sm: 8px;");
     expect(block).toContain("--spacing-md: 16px;");
     expect(block).toContain("--spacing-lg: 32px;");
-    expect(block).toContain("--spacing-xl: 64px;");
-  });
-
-  test("string spacing values pass through unchanged", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-spacing:
-  base: 16px
-  gutter: 1.5rem
-`;
-    const config = loadThemeConfig(yaml);
-    const block = generateThemeBlock(config);
-
-    expect(block).toContain("--spacing-base: 16px;");
-    expect(block).toContain("--spacing-gutter: 1.5rem;");
-  });
-
-  test("mixed numeric and string spacing accepted", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-spacing:
-  sm: 2
-  base: 16px
-`;
-    const config = loadThemeConfig(yaml);
-    expect(config.spacing?.["sm"]).toBe(2);
-    expect(config.spacing?.["base"]).toBe("16px");
-    const block = generateThemeBlock(config);
-    expect(block).toContain("--spacing-sm: 8px;");
-    expect(block).toContain("--spacing-base: 16px;");
   });
 });
 
-// ─── Color mode pairs ───
+// ─── Metadata and structure ───
 
-describe("Color mode pairs — schema validation", () => {
-  test("accepts { light, dark } pair as a top-level color", () => {
-    const yaml = `
-name: Test
-colors:
-  surface:
-    light: "#ffffff"
-    dark: "#1b1a18"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    const surface = config.colors["surface"] as { light: string; dark: string };
-    expect(surface.light).toBe("#ffffff");
-    expect(surface.dark).toBe("#1b1a18");
+describe("Theme metadata and structure", () => {
+  test("reads name, version and description from root", () => {
+    const config = loadThemeConfig(theme());
+    expect(config.name).toBe("Test");
+    expect(config.version).toBe("alpha");
+    expect(config.description).toBe("Test theme");
   });
 
-  test("accepts { light, dark } pair nested inside a color group", () => {
-    const yaml = `
-name: Test
-colors:
-  bg:
-    primary:
-      light: "#ffffff"
-      dark: "#000000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    const bg = config.colors["bg"] as Record<string, unknown>;
-    const primary = bg["primary"] as { light: string; dark: string };
-    expect(primary.light).toBe("#ffffff");
-    expect(primary.dark).toBe("#000000");
+  test("rejects missing theme name", () => {
+    expect(() => loadThemeConfig(theme({ $extensions: {} }))).toThrow("Theme name is required");
   });
 
-  test("rejects mode pair with invalid color value", () => {
-    const yaml = `
-name: Bad
-colors:
-  surface:
-    light: "not-a-color"
-    dark: "#000000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    expect(() => loadThemeConfig(yaml, "bad.yaml")).toThrow("Theme validation failed");
+  test.each(["color", "font", "radius"])("rejects missing %s group", (group) => {
+    expect(() => loadThemeConfig(theme({ [group]: undefined }))).toThrow(`"${group}"`);
   });
 
-  test("mode pair dark value appears in @theme block", () => {
-    const yaml = `
-name: Test
-colors:
-  surface:
-    light: "#ffffff"
-    dark: "#1b1a18"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
+  test("rejects names containing a period or braces", () => {
+    const bad = theme({ color: { $type: "color", "a{b}": { $value: c("#000000") } } });
+    expect(() => loadThemeConfig(bad)).toThrow("must not contain");
+  });
+
+  test("rejects a token with no $type", () => {
+    const bad = theme({ color: { accent: { $value: c("#000000") } } });
+    expect(() => loadThemeConfig(bad)).toThrow("no $type");
+  });
+
+  test("rejects an unknown $type", () => {
+    const bad = theme({ color: { $type: "wobble", accent: { $value: 1 } } });
+    expect(() => loadThemeConfig(bad)).toThrow("Unknown $type");
+  });
+});
+
+// ─── Colors ───
+
+describe("Colors", () => {
+  test("rejects a CSS string where a color object is required", () => {
+    const bad = theme({ color: { $type: "color", accent: { $value: "#0071e3" } } });
+    expect(() => loadThemeConfig(bad, "bad.yaml")).toThrow("Theme validation failed");
+  });
+
+  test("rejects a bad hex", () => {
+    const bad = theme({ color: { $type: "color", accent: { $value: { ...c("#000000"), hex: "nope" } } } });
+    expect(() => loadThemeConfig(bad)).toThrow("hex must be");
+  });
+
+  test("opaque color emits hex; alpha color emits rgb()", () => {
+    const config = loadThemeConfig(
+      theme({
+        color: {
+          $type: "color",
+          bg: { primary: { $value: c("#000000") } },
+          shadow: { $value: c("#000000", 0.5) },
+        },
+      })
+    );
+    const block = generateThemeBlock(config);
+    expect(block).toContain("--color-bg-primary: #000000;");
+    expect(block).toContain("--color-shadow: rgb(0 0 0 / 0.5);");
+  });
+
+  test("alias resolves to the referenced color", () => {
+    const config = loadThemeConfig(
+      theme({
+        color: { $type: "color", accent: { $value: c("#0071e3") }, link: { $value: "{color.accent}" } },
+      })
+    );
+    expect(generateThemeBlock(config)).toContain("--color-link: #0071e3;");
+  });
+
+  test("rejects an alias that does not resolve", () => {
+    const bad = theme({ color: { $type: "color", link: { $value: "{color.missing}" } } });
+    expect(() => loadThemeConfig(bad)).toThrow("does not resolve");
+  });
+
+  test("rejects an alias cycle", () => {
+    const bad = theme({
+      color: { $type: "color", a: { $value: "{color.b}" }, b: { $value: "{color.a}" } },
+    });
+    expect(() => loadThemeConfig(bad)).toThrow("does not resolve");
+  });
+});
+
+// ─── Light / dark mode ───
+
+describe("Color mode pairs (use-design.mode)", () => {
+  const surface = {
+    $value: c("#ffffff"),
+    $extensions: { "use-design.mode": { dark: c("#1b1a18") } },
+  };
+
+  test("dark value goes in @theme, light value in overrides", () => {
+    const config = loadThemeConfig(theme({ color: { $type: "color", surface } }));
     const block = generateThemeBlock(config);
     expect(block).toContain("--color-surface: #1b1a18;");
     expect(block).not.toContain("--color-surface: #ffffff;");
-  });
-});
-
-// ─── generateColorModeOverrides ───
-
-describe("generateColorModeOverrides", () => {
-  test("returns null when no mode pairs defined", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#0071e3"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    expect(generateColorModeOverrides(config)).toBeNull();
-  });
-
-  test("emits light mode media query and data-theme selector", () => {
-    const yaml = `
-name: Test
-colors:
-  surface:
-    light: "#ffffff"
-    dark: "#1b1a18"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
     const overrides = generateColorModeOverrides(config);
-    expect(overrides).not.toBeNull();
     expect(overrides).toContain("@media (prefers-color-scheme: light)");
     expect(overrides).toContain('[data-theme="light"]');
     expect(overrides).toContain("--color-surface: #ffffff;");
   });
 
-  test("nested mode pair emits correct var name", () => {
-    const yaml = `
-name: Test
-colors:
-  bg:
-    primary:
-      light: "#ffffff"
-      dark: "#000000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    const overrides = generateColorModeOverrides(config);
-    expect(overrides).toContain("--color-bg-primary: #ffffff;");
+  test("nested mode token emits the full variable name", () => {
+    const config = loadThemeConfig(theme({ color: { $type: "color", bg: { primary: surface } } }));
+    expect(generateColorModeOverrides(config)).toContain("--color-bg-primary: #ffffff;");
   });
 
-  test("static colors are not included in overrides", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#0071e3"
-  surface:
-    light: "#ffffff"
-    dark: "#000000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "4px"
-`;
-    const config = loadThemeConfig(yaml);
-    const overrides = generateColorModeOverrides(config);
-    expect(overrides).not.toContain("--color-accent");
-    expect(overrides).toContain("--color-surface: #ffffff;");
+  test("returns null with no mode pairs; statics are excluded", () => {
+    expect(generateColorModeOverrides(loadThemeConfig(theme()))).toBeNull();
+    const config = loadThemeConfig(
+      theme({ color: { $type: "color", accent: { $value: c("#0071e3") }, surface } })
+    );
+    expect(generateColorModeOverrides(config)).not.toContain("--color-accent");
   });
 
-  test("all themes have mode pairs after YAML updates", async () => {
-    for (const name of ["apple", "google", "ferrari"]) {
-      const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-      const config = loadThemeConfig(yaml, `${name}.yaml`);
-      const overrides = generateColorModeOverrides(config);
-      expect(overrides).not.toBeNull();
-      expect(overrides).toContain("@media (prefers-color-scheme: light)");
-    }
+  test("rejects an invalid dark color", () => {
+    const bad = theme({
+      color: {
+        $type: "color",
+        surface: { $value: c("#ffffff"), $extensions: { "use-design.mode": { dark: "black" } } },
+      },
+    });
+    expect(() => loadThemeConfig(bad)).toThrow("needs a valid color");
   });
 });
 
-describe("Numeric scale: rounded", () => {
-  test("numeric rounded values convert via toPx in generated CSS", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: 1
-  md: 2
-  lg: 4
-`;
-    const config = loadThemeConfig(yaml);
-    const block = generateThemeBlock(config);
+// ─── Typography ───
 
-    expect(block).toContain("--radius-sm: 4px;");
-    expect(block).toContain("--radius-md: 8px;");
-    expect(block).toContain("--radius-lg: 16px;");
+describe("Typography", () => {
+  test("composite token emits one variable per field", () => {
+    const config = loadThemeConfig(
+      theme({
+        font: {
+          $type: "typography",
+          "hero-title": {
+            $value: {
+              fontFamily: ["FerrariSans", "Arial"],
+              fontSize: px(42),
+              fontWeight: 500,
+              lineHeight: 1.2,
+              letterSpacing: px(1.28),
+            },
+            $extensions: { "use-design.font": { feature: '"ss01"' } },
+          },
+        },
+      })
+    );
+    const block = generateThemeBlock(config);
+    expect(block).toContain("--font-hero-title: FerrariSans, Arial;");
+    expect(block).toContain("--font-hero-title-size: 42px;");
+    expect(block).toContain("--font-hero-title-weight: 500;");
+    expect(block).toContain("--font-hero-title-line-height: 1.2;");
+    expect(block).toContain("--font-hero-title-letter-spacing: 1.28px;");
+    expect(block).toContain('--font-hero-title-feature: "ss01";');
   });
 
-  test("string rounded values pass through unchanged", () => {
-    const yaml = `
-name: Test
-colors:
-  accent: "#000"
-typography:
-  body:
-    fontFamily: "Arial, sans-serif"
-rounded:
-  sm: "5px"
-  pill: "9999px"
-`;
-    const config = loadThemeConfig(yaml);
-    const block = generateThemeBlock(config);
+  test("fontFamily-only token is accepted", () => {
+    const config = loadThemeConfig(theme());
+    expect(generateThemeBlock(config)).toContain("--font-body: Arial, sans-serif;");
+  });
 
+  test("rejects a CSS string for fontSize", () => {
+    const bad = theme({
+      font: { $type: "typography", h1: { $value: { fontSize: "48px" } } },
+    });
+    expect(() => loadThemeConfig(bad)).toThrow("Theme validation failed");
+  });
+});
+
+// ─── Radius ───
+
+describe("Radius", () => {
+  test("off-scale radius is allowed", () => {
+    const config = loadThemeConfig(
+      theme({ radius: { $type: "dimension", sm: { $value: px(5) }, pill: { $value: px(980) } } })
+    );
+    const block = generateThemeBlock(config);
     expect(block).toContain("--radius-sm: 5px;");
-    expect(block).toContain("--radius-pill: 9999px;");
+    expect(block).toContain("--radius-pill: 980px;");
+  });
+
+  test("rem is allowed", () => {
+    const config = loadThemeConfig(
+      theme({ radius: { $type: "dimension", lg: { $value: { value: 1.5, unit: "rem" } } } })
+    );
+    expect(generateThemeBlock(config)).toContain("--radius-lg: 1.5rem;");
+  });
+
+  test("rejects a string radius value for a dimension", () => {
+    const bad = theme({ radius: { $type: "dimension", sm: { $value: "big" } } });
+    expect(() => loadThemeConfig(bad)).toThrow("Theme validation failed");
   });
 });
 
-// ─── All themes use Tailwind numeric spacing ───
+// ─── Spacing: Tailwind scale (multiples of 2px) ───
 
-describe("All themes: Tailwind spacing scale", () => {
-  test.each(["apple", "google", "ferrari"])("%s.yaml has spacing with numeric values", async (name) => {
-    const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-    const config = loadThemeConfig(yaml, `${name}.yaml`);
+describe("Spacing", () => {
+  const spacing = (v: unknown) => theme({ spacing: { $type: "dimension", md: { $value: v } } });
 
-    expect(config.spacing).toBeDefined();
-    expect(Object.keys(config.spacing!).length).toBeGreaterThan(0);
-
-    // All numeric spacing values should be positive
-    for (const [key, value] of Object.entries(config.spacing!)) {
-      if (typeof value === "number") {
-        expect(value).toBeGreaterThan(0);
-      }
+  test("accepts whole and half Tailwind units", () => {
+    for (const v of [2, 4, 6, 16, 80]) {
+      const config = loadThemeConfig(spacing(px(v)));
+      expect(generateThemeBlock(config)).toContain(`--spacing-md: ${v}px;`);
     }
   });
 
-  test.each(["apple", "google", "ferrari"])("%s.yaml spacing generates correct px values in @theme", async (name) => {
-    const yaml = await Bun.file(resolve(THEMES_DIR, `${name}.yaml`)).text();
-    const config = loadThemeConfig(yaml, `${name}.yaml`);
-    const block = generateThemeBlock(config);
+  test("rejects off-scale values", () => {
+    for (const v of [3, 5, 17]) {
+      expect(() => loadThemeConfig(spacing(px(v)))).toThrow("Tailwind scale");
+    }
+  });
 
-    // md: 4 → --spacing-md: 16px
-    expect(block).toContain("--spacing-md: 16px;");
-    // lg: 8 → --spacing-lg: 32px
-    expect(block).toContain("--spacing-lg: 32px;");
+  test("rejects rem spacing", () => {
+    expect(() => loadThemeConfig(spacing({ value: 1, unit: "rem" }))).toThrow("Tailwind scale");
+  });
+
+  test("spacing is optional", () => {
+    expect(generateThemeBlock(loadThemeConfig(theme()))).not.toContain("--spacing-");
+  });
+});
+
+// ─── Components ───
+
+describe("Components", () => {
+  const component = {
+    $type: "string",
+    "button-primary": {
+      padding: { $value: "12px 28px" },
+      fontSize: { $type: "dimension", $value: px(16) },
+    },
+  };
+
+  test("component tokens emit --component-* variables", () => {
+    const block = generateThemeBlock(loadThemeConfig(theme({ component })));
+    expect(block).toContain("--component-button-primary-padding: 12px 28px;");
+    expect(block).toContain("--component-button-primary-font-size: 16px;");
+  });
+
+  test("component can alias a spacing token", () => {
+    const config = loadThemeConfig(
+      theme({
+        spacing: { $type: "dimension", md: { $value: px(16) } },
+        component: { "button-primary": { fontSize: { $type: "dimension", $value: "{spacing.md}" } } },
+      })
+    );
+    expect(generateThemeBlock(config)).toContain("--component-button-primary-font-size: 16px;");
+  });
+
+  test("component group is optional", () => {
+    expect(generateThemeBlock(loadThemeConfig(theme()))).not.toContain("--component-");
+  });
+});
+
+// ─── Block shape ───
+
+describe("generateThemeBlock", () => {
+  test("wraps output in @theme static { }", () => {
+    const block = generateThemeBlock(loadThemeConfig(theme()));
+    expect(block.startsWith("@theme static {")).toBe(true);
+    expect(block.endsWith("}")).toBe(true);
+  });
+
+  test("emits tokens no utility references (regression: Tailwind tree-shaking)", () => {
+    const config = loadThemeConfig(theme({ spacing: { $type: "dimension", gutter: { $value: px(24) } } }));
+    expect(generateThemeBlock(config)).toContain("--spacing-gutter: 24px;");
+  });
+});
+
+// ─── use-design.css override ───
+
+describe("Color CSS override (use-design.css)", () => {
+  const overridden = (css: string) =>
+    theme({
+      color: {
+        $type: "color",
+        bg: { $value: c("#000000", 0), $extensions: { "use-design.css": css } },
+      },
+    });
+
+  test("override replaces the generated color value", () => {
+    const block = generateThemeBlock(loadThemeConfig(overridden("transparent")));
+    expect(block).toContain("--color-bg: transparent;");
+  });
+
+  test("without override, alpha colors emit rgb(r g b / a)", () => {
+    const config = loadThemeConfig(theme({ color: { $type: "color", bg: { $value: c("#000000", 0.5) } } }));
+    expect(generateThemeBlock(config)).toContain("--color-bg: rgb(0 0 0 / 0.5);");
+  });
+});
+
+// ─── Full CSS assembly ───
+
+describe("buildThemeCss", () => {
+  test("emits import, static theme block and component CSS", () => {
+    const css = buildThemeCss(theme(), ".btn-primary { color: red; }");
+    expect(css).toContain('@import "tailwindcss";');
+    expect(css).toContain("@theme static {");
+    expect(css).toContain(".btn-primary");
+  });
+
+  test("injects button-primary padding token into button rules", () => {
+    const yaml = theme({
+      component: { "button-primary": { padding: { $type: "string", $value: "12px 28px" } } },
+    });
+    const css = buildThemeCss(yaml, ".btn-primary { padding: 1px; }");
+    expect(css).toContain("padding: var(--component-button-primary-padding);");
   });
 });

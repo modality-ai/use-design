@@ -1,72 +1,313 @@
-version: alpha
-name: Ferrari
-description: >
-  Inspired by ferrari.com — chiaroscuro editorial, Rosso Corsa restraint, precision engineering aesthetics.
-  Ref: DESIGN.md (Ferrari)
-
-colors:
+$description: "Inspired by ferrari.com — chiaroscuro editorial, Rosso Corsa restraint, precision engineering aesthetics. Ref: DESIGN.md (Ferrari)"
+$extensions:
+  use-design.theme:
+    name: Ferrari
+    version: alpha
+color:
+  $type: color
   bg:
-    primary: "#000000"
-    secondary: "#ffffff"
+    primary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        hex: "#000000"
+    secondary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 1
+          - 1
+          - 1
+        hex: "#ffffff"
     surface:
-      light: "#f5f5f5"
-      dark: "#303030"
-    surface-alt: "#181818"
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.961
+          - 0.961
+          - 0.961
+        hex: "#f5f5f5"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.188
+              - 0.188
+              - 0.188
+            hex: "#303030"
+    surface-alt:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.094
+          - 0.094
+          - 0.094
+        hex: "#181818"
   text:
-    primary: "#181818"
-    secondary: "#666666"
-    tertiary: "#8F8F8F"
-    on-dark: "#ffffff"
-  accent: "#DA291C"
-  accent-dark: "#B01E0A"
-  accent-deep: "#9D2211"
-  link: "#181818"
-  link-dark: "#ffffff"
-  link-hover: "#3860BE"
-  btn-active: "#1EAEDB"
-  shadow: "rgba(153, 153, 153, 0.8)"
+    primary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.094
+          - 0.094
+          - 0.094
+        hex: "#181818"
+    secondary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.4
+          - 0.4
+          - 0.4
+        hex: "#666666"
+    tertiary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.561
+          - 0.561
+          - 0.561
+        hex: "#8f8f8f"
+    on-dark:
+      $value:
+        colorSpace: srgb
+        components:
+          - 1
+          - 1
+          - 1
+        hex: "#ffffff"
+  accent:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.855
+        - 0.161
+        - 0.11
+      hex: "#da291c"
+  accent-dark:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.69
+        - 0.118
+        - 0.039
+      hex: "#b01e0a"
+  accent-deep:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.616
+        - 0.133
+        - 0.067
+      hex: "#9d2211"
+  link:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.094
+        - 0.094
+        - 0.094
+      hex: "#181818"
+  link-dark:
+    $value:
+      colorSpace: srgb
+      components:
+        - 1
+        - 1
+        - 1
+      hex: "#ffffff"
+  link-hover:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.22
+        - 0.376
+        - 0.745
+      hex: "#3860be"
+  btn-active:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.118
+        - 0.682
+        - 0.859
+      hex: "#1eaedb"
+  shadow:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.6
+        - 0.6
+        - 0.6
+      alpha: 0.8
+      hex: "#999999"
   nav-bg:
-    light: "rgba(255, 255, 255, 0.95)"
-    dark: "#000000"
-  border: "#CCCCCC"
-  overlay: "hsla(0, 0%, 7%, 0.8)"
+    $value:
+      colorSpace: srgb
+      components:
+        - 1
+        - 1
+        - 1
+      alpha: 0.95
+      hex: "#ffffff"
+    $extensions:
+      use-design.mode:
+        dark:
+          colorSpace: srgb
+          components:
+            - 0
+            - 0
+            - 0
+          hex: "#000000"
+  border:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.8
+        - 0.8
+        - 0.8
+      hex: "#cccccc"
+  overlay:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.07
+        - 0.07
+        - 0.07
+      alpha: 0.8
+      hex: "#121212"
+    $extensions:
+      use-design.css: "hsla(0, 0%, 7%, 0.8)"
   input:
-    bg: "transparent"
-    border: "#CCCCCC"
-  yellow: "#F6E500"
-  yellow-racing: "#FFF200"
-  placeholder: "#969696"
-
-typography:
+    bg:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0
+          - 0
+          - 0
+        alpha: 0
+        hex: "#000000"
+      $extensions:
+        use-design.css: transparent
+    border:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.8
+          - 0.8
+          - 0.8
+        hex: "#cccccc"
+  yellow:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.965
+        - 0.898
+        - 0
+      hex: "#f6e500"
+  yellow-racing:
+    $value:
+      colorSpace: srgb
+      components:
+        - 1
+        - 0.949
+        - 0
+      hex: "#fff200"
+  placeholder:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.588
+        - 0.588
+        - 0.588
+      hex: "#969696"
+font:
+  $type: typography
   display:
-    fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
+    $value:
+      fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
   body:
-    fontFamily: '"Body-Font", Arial, Helvetica, sans-serif'
+    $value:
+      fontFamily: '"Body-Font", Arial, Helvetica, sans-serif'
   hero-title:
-    fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
-    fontSize: 42px
-    fontWeight: 500
-    lineHeight: 1.2
-
-rounded:
-  sm: "1px"
-  md: "2px"
-  lg: "8px"
-  pill: "50%"
-
-# Tailwind-compatible spacing scale: 1 unit = 4px
+    $value:
+      fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
+      fontSize:
+        value: 42
+        unit: px
+      fontWeight: 500
+      lineHeight: 1.2
+radius:
+  sm:
+    $type: dimension
+    $value:
+      value: 1
+      unit: px
+  md:
+    $type: dimension
+    $value:
+      value: 2
+      unit: px
+  lg:
+    $type: dimension
+    $value:
+      value: 8
+      unit: px
+  pill:
+    $type: string
+    $value: 50%
 spacing:
-  xs: 1     # 4px
-  sm: 2     # 8px
-  md: 4     # 16px
-  lg: 8     # 32px
-  xl: 16    # 64px
-  gutter: 6 # 24px
-  section: 20 # 80px
-
-components:
+  $type: dimension
+  xs:
+    $value:
+      value: 4
+      unit: px
+  sm:
+    $value:
+      value: 8
+      unit: px
+  md:
+    $value:
+      value: 16
+      unit: px
+  lg:
+    $value:
+      value: 32
+      unit: px
+  xl:
+    $value:
+      value: 64
+      unit: px
+  gutter:
+    $value:
+      value: 24
+      unit: px
+  section:
+    $value:
+      value: 80
+      unit: px
+component:
   button-primary:
-    padding: "12px 28px"
-    fontSize: "16px"
-    letterSpacing: "1.28px"
-    minWidth: "160px"
+    padding:
+      $type: string
+      $value: 12px 28px
+    fontSize:
+      $type: dimension
+      $value:
+        value: 16
+        unit: px
+    letterSpacing:
+      $type: dimension
+      $value:
+        value: 1.28
+        unit: px
+    minWidth:
+      $type: dimension
+      $value:
+        value: 160
+        unit: px

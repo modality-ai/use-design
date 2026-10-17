@@ -1,13 +1,16 @@
 import { parse as parseYaml } from "yaml";
-import { themeSchema, type ThemeConfig, type ColorModePair } from "./schema";
-
-// ─── Internal types ───────────────────────────────────────────────────────────
-
-type ColorLeaf = string | ColorModePair;
-type ColorValue = ColorLeaf | Record<string, ColorLeaf>;
-
-type StaticColorEntry = { cssVar: string; value: string };
-type ModeColorEntry   = { cssVar: string; light: string; dark: string };
+import {
+  themeSchema,
+  walkTokens,
+  resolveToken,
+  GROUPS,
+  MODE_EXT,
+  FONT_EXT,
+  CSS_EXT,
+  type ThemeConfig,
+  type TokenEntry,
+  type ColorValue,
+} from "./schema";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16,144 +19,121 @@ function toKebab(s: string): string {
   return s.replace(/([A-Z])/g, (c) => `-${c.toLowerCase()}`);
 }
 
-/**
- * Convert a Tailwind-style unit value to a CSS pixel string.
- *
- * Numeric values follow the Tailwind spacing convention: 1 unit = 4px.
- * String values with explicit units are returned unchanged.
- *
- * @example toPx(4)      → "16px"   (4 * 4px)
- * @example toPx(1.5)    → "6px"    (1.5 * 4px)
- * @example toPx("16px") → "16px"   (passthrough)
- * @example toPx("1rem") → "1rem"   (passthrough)
- */
-export function toPx(value: number | string): string {
-  if (typeof value === "number") return `${value * 4}px`;
-  return value;
+function cssVar(path: string[]): string {
+  return `--${path.map(toKebab).join("-")}`;
 }
 
-/** Return true if the value is a { light, dark } mode pair. */
-function isModePair(v: unknown): v is ColorModePair {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "light" in v &&
-    "dark" in v &&
-    typeof (v as ColorModePair).light === "string" &&
-    typeof (v as ColorModePair).dark === "string"
-  );
+/** Emit a DTCG color as CSS: hex when opaque, rgb(r g b / a) otherwise. */
+function colorToCss(c: ColorValue): string {
+  if (c.alpha === undefined || c.alpha === 1) return c.hex;
+  const [r, g, b] = c.components.map((v) => Math.round(v * 255));
+  return `rgb(${r} ${g} ${b} / ${c.alpha})`;
 }
 
-/**
- * Flatten a color map into static entries and mode-aware entries.
- *
- * Static entries go directly into @theme {}.
- * Mode entries emit dark as the default and light as the override.
- *
- * e.g.
- *   { accent: "#DA291C" }
- *     → statics: [{ cssVar: "--color-accent", value: "#DA291C" }]
- *
- *   { surface: { light: "#fff", dark: "#000" } }
- *     → modes: [{ cssVar: "--color-surface", light: "#fff", dark: "#000" }]
- *
- *   { bg: { primary: "#000", on-dark: { light: "#000", dark: "#fff" } } }
- *     → statics: [{ cssVar: "--color-bg-primary", value: "#000" }]
- *        modes:   [{ cssVar: "--color-bg-on-dark", light: "#000", dark: "#fff" }]
- */
-function flattenColorEntries(
-  obj: Record<string, ColorValue>,
-  prefix = "--color"
-): { statics: StaticColorEntry[]; modes: ModeColorEntry[] } {
-  const statics: StaticColorEntry[] = [];
-  const modes: ModeColorEntry[] = [];
+function dimToCss(d: { value: number; unit: string }): string {
+  return `${d.value}${d.unit}`;
+}
 
-  for (const [key, value] of Object.entries(obj)) {
-    const cssVar = `${prefix}-${key}`;
+function familyToCss(v: unknown): string {
+  return Array.isArray(v) ? v.join(", ") : String(v);
+}
 
-    if (typeof value === "string") {
-      statics.push({ cssVar, value });
-    } else if (isModePair(value)) {
-      modes.push({ cssVar, light: value.light, dark: value.dark });
-    } else {
-      // Nested record — recurse one level deep
-      const nested = flattenColorEntries(value as Record<string, ColorLeaf>, cssVar);
-      statics.push(...nested.statics);
-      modes.push(...nested.modes);
-    }
+type Ctx = { root: Record<string, unknown> };
+
+function resolve(ctx: Ctx, entry: TokenEntry): TokenEntry {
+  const r = resolveToken(ctx.root, entry);
+  if (!r) throw new Error(`Unresolvable alias at ${entry.path.join(".")}`);
+  return r;
+}
+
+/** Plain-value token (everything except typography) as a CSS value. */
+function valueToCss(entry: TokenEntry): string {
+  const override = entry.token.$extensions?.[CSS_EXT];
+  if (typeof override === "string") return override;
+  const v = entry.token.$value as any;
+  switch (entry.type) {
+    case "color":
+      return colorToCss(v);
+    case "dimension":
+      return dimToCss(v);
+    case "fontFamily":
+      return familyToCss(v);
+    default:
+      return String(v);
   }
-
-  return { statics, modes };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Generate the @theme {} block from a validated ThemeConfig.
- * Mode-aware colors use the dark value as the default.
+ * Generate the @theme {} block. Colors with a light/dark pair emit the dark
+ * value here (dark-first); light values go to generateColorModeOverrides.
  */
 export function generateThemeBlock(config: ThemeConfig): string {
+  const ctx: Ctx = { root: config.root };
   const lines: string[] = [];
-  const { statics, modes } = flattenColorEntries(config.colors);
+  const all = walkTokens(config.root);
 
-  // Static colors
-  for (const { cssVar, value } of statics) {
-    lines.push(`  ${cssVar}: ${value};`);
-  }
-  // Mode-aware colors: dark is default (most themes in this project are dark-first)
-  for (const { cssVar, dark } of modes) {
-    lines.push(`  ${cssVar}: ${dark};`);
-  }
+  for (const group of GROUPS) {
+    const entries = all.filter((e) => e.path[0] === group);
 
-  // Typography — design.md spec: --font-<name>[-<prop>]
-  for (const [name, token] of Object.entries(config.typography)) {
-    if (token.fontFamily)              lines.push(`  --font-${name}: ${token.fontFamily};`);
-    if (token.fontSize)                lines.push(`  --font-${name}-size: ${token.fontSize};`);
-    if (token.fontWeight !== undefined) lines.push(`  --font-${name}-weight: ${token.fontWeight};`);
-    if (token.lineHeight !== undefined) lines.push(`  --font-${name}-line-height: ${token.lineHeight};`);
-    if (token.letterSpacing)           lines.push(`  --font-${name}-letter-spacing: ${token.letterSpacing};`);
-    if (token.fontFeature)             lines.push(`  --font-${name}-feature: ${token.fontFeature};`);
-    if (token.fontVariation)           lines.push(`  --font-${name}-variation: ${token.fontVariation};`);
-  }
-
-  // Rounded — design.md spec: --radius-<key> (Tailwind v4 compatible)
-  for (const [key, value] of Object.entries(config.rounded)) {
-    lines.push(`  --radius-${key}: ${toPx(value)};`);
-  }
-
-  // Spacing — design.md spec: --spacing-<key>
-  if (config.spacing) {
-    for (const [key, value] of Object.entries(config.spacing)) {
-      lines.push(`  --spacing-${key}: ${toPx(value)};`);
-    }
-  }
-
-  // Components — design.md spec: --component-<name>-<kebab-prop>
-  if (config.components) {
-    for (const [name, tokens] of Object.entries(config.components)) {
-      for (const [prop, value] of Object.entries(tokens)) {
-        lines.push(`  --component-${name}-${toKebab(prop)}: ${value};`);
+    if (group === "color") {
+      const statics: string[] = [];
+      const modes: string[] = [];
+      for (const e of entries) {
+        const r = resolve(ctx, e);
+        const dark = (e.token.$extensions?.[MODE_EXT] ?? r.token.$extensions?.[MODE_EXT]) as
+          | { dark: ColorValue }
+          | undefined;
+        if (dark) modes.push(`  ${cssVar(e.path)}: ${colorToCss(dark.dark)};`);
+        else statics.push(`  ${cssVar(e.path)}: ${valueToCss({ ...r, type: "color" })};`);
       }
+      lines.push(...statics, ...modes);
+      continue;
+    }
+
+    for (const e of entries) {
+      const r = resolve(ctx, e);
+      const name = cssVar(e.path);
+      if (r.type !== "typography") {
+        lines.push(`  ${name}: ${valueToCss(r)};`);
+        continue;
+      }
+      const t = r.token.$value as Record<string, any>;
+      const ext = (r.token.$extensions?.[FONT_EXT] ?? {}) as Record<string, string>;
+      if (t.fontFamily !== undefined) lines.push(`  ${name}: ${familyToCss(t.fontFamily)};`);
+      if (t.fontSize) lines.push(`  ${name}-size: ${dimToCss(t.fontSize)};`);
+      if (t.fontWeight !== undefined) lines.push(`  ${name}-weight: ${t.fontWeight};`);
+      if (t.lineHeight !== undefined) lines.push(`  ${name}-line-height: ${t.lineHeight};`);
+      if (t.letterSpacing) lines.push(`  ${name}-letter-spacing: ${dimToCss(t.letterSpacing)};`);
+      if (ext.feature) lines.push(`  ${name}-feature: ${ext.feature};`);
+      if (ext.variation) lines.push(`  ${name}-variation: ${ext.variation};`);
     }
   }
 
-  return `@theme {\n${lines.join("\n")}\n}`;
+  // `static` makes Tailwind v4 emit every token instead of tree-shaking the ones
+  // no utility references, so the compiled CSS exposes the full theme deterministically.
+  return `@theme static {\n${lines.join("\n")}\n}`;
 }
 
 /**
- * Generate light-mode CSS overrides for all mode-aware color tokens.
- *
- * Emits two selectors so consumers can choose either strategy:
- *   1. @media (prefers-color-scheme: light) — respects OS preference automatically
- *   2. [data-theme="light"]                 — explicit user override via JS
- *
+ * Light-mode CSS overrides for every color token with a use-design.mode pair.
+ * Emits both an OS-preference media query and a [data-theme="light"] selector.
  * Returns null when no mode-aware colors are defined.
  */
 export function generateColorModeOverrides(config: ThemeConfig): string | null {
-  const { modes } = flattenColorEntries(config.colors);
+  const ctx: Ctx = { root: config.root };
+  const modes = walkTokens(config.root)
+    .filter((e) => e.path[0] === "color")
+    .filter((e) => {
+      const r = resolve(ctx, e);
+      return e.token.$extensions?.[MODE_EXT] ?? r.token.$extensions?.[MODE_EXT];
+    })
+    .map((e) => ({ name: cssVar(e.path), light: valueToCss({ ...resolve(ctx, e), type: "color" }) }));
+
   if (modes.length === 0) return null;
 
-  const vars = modes.map(({ cssVar, light }) => `    ${cssVar}: ${light};`).join("\n");
+  const vars = modes.map(({ name, light }) => `    ${name}: ${light};`).join("\n");
 
   return [
     `/* Light mode overrides — auto (OS preference) */`,
@@ -165,57 +145,41 @@ export function generateColorModeOverrides(config: ThemeConfig): string | null {
     ``,
     `/* Light mode overrides — explicit ([data-theme="light"] on <html>) */`,
     `[data-theme="light"] {`,
-    modes.map(({ cssVar, light }) => `  ${cssVar}: ${light};`).join("\n"),
+    modes.map(({ name, light }) => `  ${name}: ${light};`).join("\n"),
     `}`,
   ].join("\n");
 }
 
-/**
- * Load a YAML theme file, validate with Zod, return the ThemeConfig.
- */
+/** Parse a YAML theme file and validate it as a DTCG theme. */
 export function loadThemeConfig(yamlContent: string, filePath?: string): ThemeConfig {
-  const raw = parseYaml(yamlContent);
-  const result = themeSchema.safeParse(raw);
+  const result = themeSchema.safeParse(parseYaml(yamlContent));
 
   if (!result.success) {
     const errors = result.error.issues
       .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
       .join("\n");
-    throw new Error(
-      `Theme validation failed${filePath ? ` (${filePath})` : ""}:\n${errors}`
-    );
+    throw new Error(`Theme validation failed${filePath ? ` (${filePath})` : ""}:\n${errors}`);
   }
 
   return result.data;
 }
 
 /**
- * Apply component tokens from YAML to component CSS by replacing hardcoded
- * values inside button rules with var(--component-*) references.
- *
- * This keeps the component CSS untouched on disk (Theme Fix Order Principle)
- * while the build pipeline injects the correct token references.
+ * Replace hardcoded values inside button rules with var(--component-*)
+ * references, keeping the component CSS untouched on disk.
  */
-function applyComponentTokensToCss(
-  css: string,
-  components?: Record<string, Record<string, string>>
-): string {
-  if (!components) return css;
-
-  const btn = components["button-primary"];
+function applyComponentTokensToCss(css: string, root: Record<string, unknown>): string {
+  const component = root.component as Record<string, Record<string, unknown>> | undefined;
+  const btn = component?.["button-primary"];
   if (!btn) return css;
 
-  const btnSelectors = [
-    ".btn-primary",
-    ".btn-secondary",
-    ".btn-pill-outline",
-    ".btn-pill-outline-dark",
-  ];
+  const btnSelectors = [".btn-primary", ".btn-secondary", ".btn-pill-outline", ".btn-pill-outline-dark"];
 
   const propMap: Record<string, string> = {
     fontSize: "font-size",
     letterSpacing: "letter-spacing",
     minWidth: "min-width",
+    padding: "padding",
   };
 
   let result = css;
@@ -230,25 +194,12 @@ function applyComponentTokensToCss(
     }
   }
 
-  if ("padding" in btn) {
-    const padVar = `var(--component-button-primary-padding)`;
-    for (const sel of btnSelectors) {
-      const escaped = sel.replace(".", "\\.");
-      const padRe = new RegExp(`(${escaped}\\s*\\{[^}]*?)padding:\\s*[^;]+;`, "g");
-      result = result.replace(padRe, `$1padding: ${padVar};`);
-    }
-  }
-
   return result;
 }
 
 /**
- * Given a theme YAML string and the component CSS string, produce the final CSS:
- *   @import "tailwindcss"
- *   + header comment
- *   + @theme {} block (dark-first defaults)
- *   + light mode overrides (if any mode-aware colors exist)
- *   + component styles
+ * Produce the final CSS: tailwind import, header comment, @theme block,
+ * light-mode overrides (if any) and the processed component styles.
  */
 export function buildThemeCss(yamlContent: string, componentCss: string, filePath?: string): string {
   const config = loadThemeConfig(yamlContent, filePath);
@@ -256,7 +207,7 @@ export function buildThemeCss(yamlContent: string, componentCss: string, filePat
   const modeOverrides = generateColorModeOverrides(config);
   const header = `/*\n * ${config.name} Theme\n * ${config.description?.trim() ?? ""}\n * Auto-generated from YAML config — do not edit directly.\n */`;
 
-  const processedCss = applyComponentTokensToCss(componentCss, config.components);
+  const processedCss = applyComponentTokensToCss(componentCss, config.root);
 
   const parts = [`@import "tailwindcss";`, ``, header, ``, themeBlock];
   if (modeOverrides) parts.push(``, modeOverrides);
