@@ -1,0 +1,53 @@
+version: alpha
+name: Apple
+description: >
+  Inspired by apple.com — cinematic, reductive, product-as-hero.
+  Ref: DESIGN.md (getdesign.md/apple)
+
+colors:
+  bg:
+    primary: "#000000"
+    secondary: "#f5f5f7"
+    surface:
+      light: "#ffffff"
+      dark: "#272729"
+    surface-alt: "#ffffff"
+  text:
+    primary: "#1d1d1f"
+    secondary: "rgba(0, 0, 0, 0.8)"
+    tertiary: "rgba(0, 0, 0, 0.48)"
+    on-dark: "#ffffff"
+  accent: "#0071e3"
+  link: "#0066cc"
+  link-dark: "#2997ff"
+  btn-active: "#ededf2"
+  shadow: "rgba(0, 0, 0, 0.22)"
+  nav-bg:
+    light: "rgba(255, 255, 255, 0.8)"
+    dark: "rgba(0, 0, 0, 0.8)"
+  border: "rgba(0, 0, 0, 0.06)"
+  input:
+    bg: "#fafafc"
+    border: "rgba(0, 0, 0, 0.04)"
+
+typography:
+  display:
+    fontFamily: '"SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif'
+  body:
+    fontFamily: '"SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif'
+
+rounded:
+  sm: "5px"
+  md: "8px"
+  lg: "12px"
+  pill: "980px"
+
+# Tailwind-compatible spacing scale: 1 unit = 4px
+spacing:
+  xs: 1     # 4px
+  sm: 2     # 8px
+  md: 4     # 16px
+  lg: 8     # 32px
+  xl: 16    # 64px
+  gutter: 6 # 24px
+  section: 20 # 80px

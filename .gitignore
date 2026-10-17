@@ -1,0 +1,13 @@
+.claude
+node_modules
+npm-debug.log
+coverage*
+.tern-port
+v8.log
+build
+.*.sw?
+webpack.pid
+dist
+public/static
+public/styles/themes
+src/styles/themes

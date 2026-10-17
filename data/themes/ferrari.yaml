@@ -1,0 +1,72 @@
+version: alpha
+name: Ferrari
+description: >
+  Inspired by ferrari.com — chiaroscuro editorial, Rosso Corsa restraint, precision engineering aesthetics.
+  Ref: DESIGN.md (Ferrari)
+
+colors:
+  bg:
+    primary: "#000000"
+    secondary: "#ffffff"
+    surface:
+      light: "#f5f5f5"
+      dark: "#303030"
+    surface-alt: "#181818"
+  text:
+    primary: "#181818"
+    secondary: "#666666"
+    tertiary: "#8F8F8F"
+    on-dark: "#ffffff"
+  accent: "#DA291C"
+  accent-dark: "#B01E0A"
+  accent-deep: "#9D2211"
+  link: "#181818"
+  link-dark: "#ffffff"
+  link-hover: "#3860BE"
+  btn-active: "#1EAEDB"
+  shadow: "rgba(153, 153, 153, 0.8)"
+  nav-bg:
+    light: "rgba(255, 255, 255, 0.95)"
+    dark: "#000000"
+  border: "#CCCCCC"
+  overlay: "hsla(0, 0%, 7%, 0.8)"
+  input:
+    bg: "transparent"
+    border: "#CCCCCC"
+  yellow: "#F6E500"
+  yellow-racing: "#FFF200"
+  placeholder: "#969696"
+
+typography:
+  display:
+    fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
+  body:
+    fontFamily: '"Body-Font", Arial, Helvetica, sans-serif'
+  hero-title:
+    fontFamily: '"FerrariSans", Arial, Helvetica, sans-serif'
+    fontSize: 42px
+    fontWeight: 500
+    lineHeight: 1.2
+
+rounded:
+  sm: "1px"
+  md: "2px"
+  lg: "8px"
+  pill: "50%"
+
+# Tailwind-compatible spacing scale: 1 unit = 4px
+spacing:
+  xs: 1     # 4px
+  sm: 2     # 8px
+  md: 4     # 16px
+  lg: 8     # 32px
+  xl: 16    # 64px
+  gutter: 6 # 24px
+  section: 20 # 80px
+
+components:
+  button-primary:
+    padding: "12px 28px"
+    fontSize: "16px"
+    letterSpacing: "1.28px"
+    minWidth: "160px"

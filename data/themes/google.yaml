@@ -1,0 +1,56 @@
+version: alpha
+name: Google
+description: >
+  Material Design 3 — colorful, rounded, playful.
+
+colors:
+  bg:
+    primary:
+      light: "#ffffff"
+      dark: "#1b1b1f"
+    secondary: "#f2f2f7"
+    surface:
+      light: "#f2f2f7"
+      dark: "#2b2b30"
+    surface-alt: "#ffffff"
+  text:
+    primary:
+      light: "#1f1f1f"
+      dark: "#e3e3e3"
+    secondary: "#444746"
+    tertiary: "#747775"
+    on-dark: "#e3e3e3"
+  accent: "#1a73e8"
+  link: "#1a73e8"
+  link-dark: "#8ab4f8"
+  btn-active: "#d2e3fc"
+  shadow: "rgba(0, 0, 0, 0.12)"
+  nav-bg:
+    light: "#ffffff"
+    dark: "#1b1b1f"
+  border: "rgba(0, 0, 0, 0.08)"
+  input:
+    bg: "#ffffff"
+    border: "rgba(0, 0, 0, 0.12)"
+
+typography:
+  display:
+    fontFamily: '"Google Sans", "Roboto", "Helvetica Neue", Arial, sans-serif'
+  body:
+    fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif'
+
+rounded:
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  pill: "100px"
+
+# Tailwind-compatible spacing scale: 1 unit = 4px
+spacing:
+  xs: 1     # 4px
+  sm: 2     # 8px
+  md: 4     # 16px
+  lg: 8     # 32px
+  xl: 16    # 64px
+  gutter: 6 # 24px
+  section: 20 # 80px
