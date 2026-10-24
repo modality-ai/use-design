@@ -2,7 +2,9 @@
 // Regenerate with generateCommandsIndex(); the commands directory is the
 // single source of truth.
 import type { CLICommand } from "modality-cli-kit";
+import { auditCommand } from "./commands/audit";
 import { buildCommand } from "./commands/build";
 import { linterCommand } from "./commands/linter";
+import { tokensCommand } from "./commands/tokens";
 
-export const commands: CLICommand[] = [buildCommand, linterCommand];
+export const commands: CLICommand[] = [auditCommand, buildCommand, linterCommand, tokensCommand];

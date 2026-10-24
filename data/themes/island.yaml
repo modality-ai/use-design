@@ -1,0 +1,420 @@
+$description: "Island — low-saturation model-board palette. Overrides the campaign CI in policies.json renderPlan.palette by design (Q8)."
+$extensions:
+  use-design.theme:
+    name: Island
+    version: alpha
+color:
+  $type: color
+  paper:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.984
+        - 0.969
+        - 0.937
+      hex: "#fbf7ef"
+    $extensions:
+      use-design.mode:
+        dark:
+          colorSpace: srgb
+          components:
+            - 0.102
+            - 0.106
+            - 0.118
+          hex: "#1a1b1e"
+  surface:
+    $value:
+      colorSpace: srgb
+      components:
+        - 1.0
+        - 0.992
+        - 0.973
+      hex: "#fffdf8"
+    $extensions:
+      use-design.mode:
+        dark:
+          colorSpace: srgb
+          components:
+            - 0.133
+            - 0.145
+            - 0.165
+          hex: "#22252a"
+  border:
+    $value:
+      colorSpace: srgb
+      components:
+        - 0.847
+        - 0.831
+        - 0.796
+      hex: "#d8d4cb"
+    $extensions:
+      use-design.mode:
+        dark:
+          colorSpace: srgb
+          components:
+            - 0.227
+            - 0.243
+            - 0.267
+          hex: "#3a3e44"
+  text:
+    primary:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.137
+          - 0.149
+          - 0.169
+        hex: "#23262b"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.91
+              - 0.902
+              - 0.882
+            hex: "#e8e6e1"
+    muted:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.357
+          - 0.373
+          - 0.4
+        hex: "#5b5f66"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.651
+              - 0.663
+              - 0.682
+            hex: "#a6a9ae"
+  accent:
+    collaboration:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.122
+          - 0.435
+          - 0.471
+        hex: "#1f6f78"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.302
+              - 0.675
+              - 0.698
+            hex: "#4dacb2"
+  glow:
+    night:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.949
+          - 0.784
+          - 0.475
+        hex: "#f2c879"
+  island:
+    civil:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.62
+          - 0.737
+          - 0.82
+        hex: "#9ebcd1"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.22
+              - 0.408
+              - 0.537
+            hex: "#386889"
+    institute:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.831
+          - 0.761
+          - 0.878
+        hex: "#d4c2e0"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.518
+              - 0.294
+              - 0.663
+            hex: "#844ba9"
+    transport:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.831
+          - 0.647
+          - 0.569
+        hex: "#d4a591"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.541
+              - 0.286
+              - 0.18
+            hex: "#8a492e"
+    education:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.624
+          - 0.816
+          - 0.722
+        hex: "#9fd0b8"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.227
+              - 0.533
+              - 0.38
+            hex: "#3a8861"
+    lunch:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.804
+          - 0.698
+          - 0.518
+        hex: "#cdb284"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.475
+              - 0.361
+              - 0.165
+            hex: "#795c2a"
+    family:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.867
+          - 0.733
+          - 0.788
+        hex: "#ddbbc9"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.643
+              - 0.278
+              - 0.427
+            hex: "#a4476d"
+    card:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.663
+          - 0.471
+          - 0.729
+        hex: "#a978ba"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.333
+              - 0.173
+              - 0.388
+            hex: "#552c63"
+    welfare:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.706
+          - 0.855
+          - 0.851
+        hex: "#b4dad9"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.263
+              - 0.616
+              - 0.608
+            hex: "#439d9b"
+    sport:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.918
+          - 0.82
+          - 0.804
+        hex: "#ead1cd"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.741
+              - 0.357
+              - 0.298
+            hex: "#bd5b4c"
+    trails:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.686
+          - 0.796
+          - 0.565
+        hex: "#afcb90"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.349
+              - 0.482
+              - 0.196
+            hex: "#597b32"
+    forest:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.349
+          - 0.694
+          - 0.392
+        hex: "#59b164"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.161
+              - 0.396
+              - 0.192
+            hex: "#296531"
+    youth:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.651
+          - 0.675
+          - 0.827
+        hex: "#a6acd3"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.239
+              - 0.282
+              - 0.557
+            hex: "#3d488e"
+    diplomacy:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.808
+          - 0.592
+          - 0.765
+        hex: "#ce97c3"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.51
+              - 0.208
+              - 0.451
+            hex: "#823573"
+    hakka:
+      $value:
+        colorSpace: srgb
+        components:
+          - 0.875
+          - 0.871
+          - 0.725
+        hex: "#dfdeb9"
+      $extensions:
+        use-design.mode:
+          dark:
+            colorSpace: srgb
+            components:
+              - 0.659
+              - 0.651
+              - 0.259
+            hex: "#a8a642"
+font:
+  $type: typography
+  display:
+    $value:
+      fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif'
+  body:
+    $value:
+      fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif'
+  code:
+    $value:
+      fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace'
+radius:
+  sm:
+    $type: dimension
+    $value:
+      value: 4
+      unit: px
+  md:
+    $type: dimension
+    $value:
+      value: 12
+      unit: px
+  lg:
+    $type: dimension
+    $value:
+      value: 16
+      unit: px
+spacing:
+  $type: dimension
+  xs:
+    $value:
+      value: 4
+      unit: px
+  sm:
+    $value:
+      value: 8
+      unit: px
+  md:
+    $value:
+      value: 16
+      unit: px
+  lg:
+    $value:
+      value: 24
+      unit: px
+  xl:
+    $value:
+      value: 32
+      unit: px
+  section:
+    $value:
+      value: 64
+      unit: px
+  island-gap:
+    $value:
+      value: 24
+      unit: px
+  plate-offset:
+    $value:
+      value: 8
+      unit: px

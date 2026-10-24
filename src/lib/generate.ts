@@ -24,7 +24,7 @@ function cssVar(path: string[]): string {
 }
 
 /** Emit a DTCG color as CSS: hex when opaque, rgb(r g b / a) otherwise. */
-function colorToCss(c: ColorValue): string {
+export function colorToCss(c: ColorValue): string {
   if (c.alpha === undefined || c.alpha === 1) return c.hex;
   const [r, g, b] = c.components.map((v) => Math.round(v * 255));
   return `rgb(${r} ${g} ${b} / ${c.alpha})`;
